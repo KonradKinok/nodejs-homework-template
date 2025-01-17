@@ -35,6 +35,7 @@ export const startServer = (port) => {
   app
     .listen(port, () => {
       console.log(`[server] Server running on port ${port}`.bgWhite);
+      console.log(`[server] http://localhost:${port}/api/contacts/ `.bgWhite);
     })
     .on("error", (err) => {
       if (err.code === "EADDRINUSE") {
