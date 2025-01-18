@@ -1,18 +1,14 @@
 import mongoose from "mongoose";
-const username = encodeURIComponent(process.env.DB_USERNAME);
-const password = encodeURIComponent(process.env.DB_PASSWORD);
-const cluster = process.env.DB_CLUSTER;
-const appName = process.env.DB_APPNAME;
+import dotenv from "dotenv";
+dotenv.config();
 const dbName = process.env.DB_DBNAME;
-const uri2 =
-  "mongodb+srv://konradkonikpoczta:K3gBMlkokxeneqhJ@mongodbkonrad.ebhjm.mongodb.net/db-contacts?retryWrites=true&w=majority&appName=MongoDbKonrad";
-const uri = `mongodb+srv://${username}:${password}@${cluster}/${dbName}?retryWrites=true&w=majority&appName=${appName}`;
-console.log(uri2);
+const uri = process.env.DB_URI;
+
 console.log(uri);
 export const connectDB = async () => {
   try {
     console.log(`[DB] Connecting to MongoDB: ${dbName} ...`.blue);
-    await mongoose.connect(uri2);
+    await mongoose.connect(uri);
     console.log(`[DB] MongoDB: ${dbName} connected successfully`.blue);
   } catch (error) {
     console.error(
@@ -30,7 +26,7 @@ export const disconnectDB = async () => {
     console.error(
       `[DB] Error disconnecting from MongoDB: ${error.message}`.red
     );
-    process.exit(1);
+    process.exit(0);
   }
 };
 

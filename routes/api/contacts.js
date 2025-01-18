@@ -97,7 +97,7 @@ router.put("/:contactId", async (req, res, next) => {
   return res.status(200).json(updatedContact);
 });
 
-router.put("/:contactId/favorite", async (req, res, next) => {
+router.patch("/:contactId/favorite", async (req, res, next) => {
   const { contactId } = req.params;
   const { error } = favoriteSchema.validate(req.body);
   if (!req.body) {
