@@ -1,61 +1,70 @@
-import fs from "node:fs";
-import path from "node:path";
+import mongoose from "mongoose";
 import { nanoid } from "nanoid";
-const dirName = import.meta.dirname;
-const contactsPath = path.join(dirName, "/contacts.json");
+import { ContactModel } from "../models/contactShemaMongoose.js";
 
-export const listContacts = async (filePath = contactsPath) => {
+export const listContacts = async () => {
   try {
-    const fileContent = await fs.promises.readFile(filePath, "utf-8");
-    console.log(`Contacts reading from ${filePath}`.bgGreen);
-    return JSON.parse(fileContent);
+    const contacts = await ContactModel.find({});
+    console.log("Contacts fetched successfully".bgGreen);
+    return contacts;
   } catch (error) {
-    if (error.code === "ENOENT") {
-      console.error(`File not found: ${filePath}`.bgRed);
-    } else {
-      console.error(`Error reading file: ${filePath}`.bgRed);
-    }
+    console.error(`[DB] Error fetching contacts: ${error.message}`.red);
+    throw new Error("Error fetching contacts from the database");
   }
 };
 
 export const getContactById = async (contactId) => {
   try {
-    const contacts = await listContacts();
-    const findedContact = contacts.find((contact) => contact.id === contactId);
-
-    if (!findedContact) {
-      return console.error(`Contact with ID: ${contactId} not found`.bgYellow);
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      console.error(`Invalid ID format: ${contactId}`.bgYellow);
+      return null;
     }
-    return findedContact;
+
+    const contact = await ContactModel.findById(contactId);
+
+    if (!contact) {
+      console.error(`Contact with ID: ${contactId} not found`.bgYellow);
+      return null;
+    }
+
+    return contact;
   } catch (error) {
-    console.error(`Error getContactById: ${error}`.bgRed);
+    console.error(`Error getContactById: ${error.message}`.bgRed);
+    throw new Error(`Unable to fetch contact by ID: ${contactId}`);
   }
 };
 
 export const removeContact = async (contactId) => {
   try {
-    const contacts = await listContacts();
-    const findedContact = contacts.find((contact) => contact.id === contactId);
+    const removedContact = await ContactModel.findByIdAndDelete(contactId);
 
-    if (findedContact) {
-      const updatedContacts = contacts.filter(
-        (contact) => contact.id !== contactId
-      );
-      await writeContactsToFile(updatedContacts);
+    if (!removedContact) {
+      console.error(`Contact with ID: ${contactId} not found`.bgYellow);
+      return null;
     }
-    return findedContact;
+
+    console.log(`Contact with ID: ${contactId} removed successfully`.bgGreen);
+    return removedContact;
   } catch (error) {
-    console.error(`Error remove contact: ${error}`.bgRed);
+    console.error(`Error removing contact: ${error}`.bgRed);
+    return null;
   }
 };
 
 export const addContact = async (body) => {
   try {
-    const { name, email, phone } = body;
-    const contact = { id: nanoid(), name, email, phone };
-    const contacts = await listContacts();
-    contacts.push(contact);
-    await writeContactsToFile(contacts);
+    const { name, email, phone, favorite } = body;
+
+    const contact = new ContactModel({
+      id: nanoid(),
+      name,
+      email,
+      phone,
+      favorite: favorite || false,
+    });
+
+    await contact.save();
+
     return contact;
   } catch (error) {
     console.error(`Error addContact: ${error}`.bgRed);
@@ -64,34 +73,47 @@ export const addContact = async (body) => {
 
 export const updateContact = async (contactId, body) => {
   try {
-    const contacts = await listContacts();
-
-    const contactIndex = contacts.findIndex(
-      (contact) => contact.id === contactId
+    const updatedContact = await ContactModel.findByIdAndUpdate(
+      contactId,
+      body,
+      { new: true, runValidators: true }
     );
 
-    if (contactIndex === -1) {
-      console.error(`Contact with ID: ${contactId} not found`.bgYellow);
+    if (!updatedContact) {
+      console.error(`Contact with ID: ${contactId} not found`);
       return null;
     }
 
-    const updatedContact = { ...contacts[contactIndex], ...body };
-    contacts[contactIndex] = updatedContact;
-
-    await writeContactsToFile(contacts);
-    console.log(`Contact with ID: ${contactId} updated successfully`.bgGreen);
-
+    console.log(`Contact with ID: ${contactId} updated successfully`);
     return updatedContact;
   } catch (error) {
-    console.error(`Error updateContact: ${error}`.bgRed);
+    console.error(`Error updateContact: ${error}`);
+    return null;
   }
 };
 
-export async function writeContactsToFile(contacts, filePath = contactsPath) {
+export const updateStatusContact = async (contactId, body) => {
   try {
-    await fs.promises.writeFile(filePath, JSON.stringify(contacts, null, 2));
-    console.log(`Contacts saved to ${filePath}`);
+    if (!Object.prototype.hasOwnProperty.call(body, "favorite")) {
+      console.error(`Missing "favorite" field in body`);
+      return null;
+    }
+
+    const updatedContact = await ContactModel.findByIdAndUpdate(
+      contactId,
+      { favorite: body.favorite },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedContact) {
+      console.error(`Contact with ID: ${contactId} not found`);
+      return null;
+    }
+
+    console.log(`Contact with ID: ${contactId} updated successfully`);
+    return updatedContact;
   } catch (error) {
-    throw new Error(`Error writing file: ${filePath}`);
+    console.error(`Error updating favorite field: ${error}`);
+    return null;
   }
-}
+};
