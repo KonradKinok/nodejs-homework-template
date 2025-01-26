@@ -115,4 +115,22 @@ router.post("/users/logout", auth, async (req, res, next) => {
   }
 });
 
+router.get("/users/current", auth, async (req, res, next) => {
+  try {
+    console.log(`Getting USER.... [usersApi.js]`.yellow);
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({
+        message: "Not authorized",
+      });
+    }
+    return res.status(200).json({
+      email: user.email,
+      subscription: user.subscription,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export const usersRouter = router;
