@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 import { nanoid } from "nanoid";
-import { ContactModel } from "../models/contactShemaMongoose.js";
+import { ContactModel } from "./contactShema.js";
 
-export const listContacts = async () => {
+export const listContacts = async (userId) => {
   try {
-    const contacts = await ContactModel.find({});
-    console.log("Contacts fetched successfully".bgGreen);
+    const contacts = await ContactModel.find({ owner: userId }); // Filtrowanie kontaktów po owner
+    console.log("[DB] Contacts fetched successfully".bgGreen);
     return contacts;
   } catch (error) {
     console.error(`[DB] Error fetching contacts: ${error.message}`.red);
@@ -53,21 +53,23 @@ export const removeContact = async (contactId) => {
 
 export const addContact = async (body) => {
   try {
-    const { name, email, phone, favorite } = body;
+    const { name, email, phone, favorite, owner } = body;
 
     const contact = new ContactModel({
-      id: nanoid(),
+      // id: nanoid(),
       name,
       email,
       phone,
       favorite: favorite || false,
+      owner,
     });
 
     await contact.save();
-
+    console.log(`Contact added successfully`.bgGreen);
+    console.log(contact.name.bgGreen);
     return contact;
   } catch (error) {
-    console.error(`Error addContact: ${error}`.bgRed);
+    console.error(`Error addContact: ${error} [contacts.js]`.bgRed);
   }
 };
 
