@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 dotenv.config();
+
 const dbName = process.env.DB_DBNAME;
 const uri = process.env.DB_URI;
 
-console.log(uri);
 export const connectDB = async () => {
   try {
     console.log(`[DB] Connecting to MongoDB: ${dbName} ...`.blue);

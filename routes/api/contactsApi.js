@@ -1,6 +1,6 @@
 import { Router } from "express";
 import Joi from "joi";
-import * as ContactsFunctions from "../../models/contacts.js";
+import * as ContactsFunctions from "../../models/contact/contacts.js";
 
 const contactSchema = Joi.object({
   name: Joi.string()
@@ -38,8 +38,20 @@ const favoriteSchema = Joi.object({
 const router = Router();
 
 router.get("/", async (req, res, next) => {
-  const contactsList = await ContactsFunctions.listContacts();
-  return res.status(200).json(contactsList);
+  try {
+    const userId = req.user._id; // Pobranie ID zalogowanego użytkownika z middleware auth
+
+    const contacts = await ContactsFunctions.listContacts(userId); // Filtrowanie kontaktów po owner
+    console.log("[DB] Contacts fetched successfully [contactsApi.js]".bgGreen);
+    return res.status(200).json(contacts);
+  } catch (error) {
+    console.error(
+      `[DB] Error fetching contacts: ${error.message} [contactsApi.js]`.red
+    );
+    return res.status(500).json({
+      message: "Error fetching contacts from the database [contactsApi.js]",
+    });
+  }
 });
 
 router.get("/:contactId", async (req, res, next) => {
@@ -64,6 +76,7 @@ router.post("/", async (req, res, next) => {
     email,
     phone,
     favorite: false,
+    owner: req.user._id, // Przypisz ID użytkownika jako owner
   });
   return res.status(201).json(newContact);
 });
@@ -115,4 +128,5 @@ router.patch("/:contactId/favorite", async (req, res, next) => {
   if (!updatedContact) return res.status(404).json({ message: "Not found" });
   return res.status(200).json(updatedContact);
 });
+
 export const contactsRouter = router;
