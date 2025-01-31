@@ -5,7 +5,7 @@ import { upload } from "../../middlewares/upload.js";
 import { auth } from "../../middlewares/auth.js";
 import dotenv from "dotenv";
 import gravatar from "gravatar";
-import { Jimp } from "jimp";
+const Jimp = (await import("jimp")).default;
 import {
   TEMP_DIRECTORY,
   AVATARS_DIRECTORY,
@@ -141,6 +141,7 @@ router.get("/users/current", auth, async (req, res, next) => {
     return res.status(200).json({
       email: user.email,
       subscription: user.subscription,
+      avatarURL: user.avatarURL,
     });
   } catch (error) {
     next(error);
@@ -174,11 +175,7 @@ router.patch(
 
       const { bitmap } = avatar;
       console.log("Loaded image dimensions:", bitmap.width, bitmap.height);
-      avatar.resize(250, 250); // Zmień rozmiar obrazu
-      // avatar.scaleToFit(250, 250);
-      // avatar.resize({ width: 100 }); // Zmień rozmiar obrazu
-      // avatar.resize(Jimp.AUTO, 100); // Zmień rozmiar obrazu
-      // console.log("Image successfully resized to 250x250.");
+      avatar.resize(250, 250);
       await avatar.write(avatarPath);
       console.log("Image successfully saved to:", avatarPath);
       await fs.unlink(tmpPath);
