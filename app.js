@@ -4,9 +4,10 @@ import cors from "cors";
 import colors from "colors";
 import { contactsRouter } from "./routes/api/contactsApi.js";
 import { usersRouter } from "./routes/api/userApi.js";
-import passport from "./config/config.js";
+import passport from "./config/configPassport.js";
+import { AVATARS_DIRECTORY, TEMP_DIRECTORY } from "./config/configDirectory.js";
 import { auth } from "./middlewares/auth.js";
-
+console.log("Directory: ", AVATARS_DIRECTORY);
 const app = express();
 
 const formatsLogger = app.get("env") === "development" ? "dev" : "short";
@@ -14,7 +15,7 @@ const logger1 = (req, res, next) => {
   const { method, originalUrl } = req;
 
   const date = new Date().toLocaleString();
-  console.log(`[${date}] [${method}] - ${originalUrl} app.js`.yellow);
+  console.log(`[${date}] [${method}] - ${originalUrl} [app.js]`.yellow);
 
   next();
 };
@@ -24,6 +25,8 @@ app.use(logger(formatsLogger));
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
+
+app.use("/avatars", express.static(AVATARS_DIRECTORY));
 app.use("/api/", usersRouter);
 app.use("/api/contacts", auth, contactsRouter);
 
