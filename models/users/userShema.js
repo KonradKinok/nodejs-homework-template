@@ -21,6 +21,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  avatarURL: {
+    type: String,
+    default: "",
+  },
 });
 userSchema.methods.setPassword = function (password) {
   this.password = bCrypt.hashSync(password, bCrypt.genSaltSync(6));
