@@ -6,3 +6,8 @@ const __dirname = path.dirname(__filename);
 const parentDirName = path.resolve(__dirname, "..");
 export const AVATARS_DIRECTORY = path.join(parentDirName, "public", "avatars");
 export const TEMP_DIRECTORY = path.join(parentDirName, "tmp");
+export const FAVICON_DIRECTORY = path.join(
+  parentDirName,
+  "public",
+  "favicon.ico"
+);
