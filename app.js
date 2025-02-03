@@ -5,7 +5,10 @@ import colors from "colors";
 import { contactsRouter } from "./routes/api/contactsApi.js";
 import { usersRouter } from "./routes/api/userApi.js";
 import passport from "./config/configPassport.js";
-import { AVATARS_DIRECTORY, TEMP_DIRECTORY } from "./config/configDirectory.js";
+import {
+  AVATARS_DIRECTORY,
+  FAVICON_DIRECTORY,
+} from "./config/configDirectory.js";
 import { auth } from "./middlewares/auth.js";
 console.log("Directory: ", AVATARS_DIRECTORY);
 const app = express();
@@ -29,6 +32,11 @@ app.use(passport.initialize());
 app.use("/avatars", express.static(AVATARS_DIRECTORY));
 app.use("/api/", usersRouter);
 app.use("/api/contacts", auth, contactsRouter);
+
+app.get("/favicon.ico", (req, res) => {
+  res.sendFile(FAVICON_DIRECTORY);
+  console.log(`[app.js] sciezkaDoPlikuFavicon: ${FAVICON_DIRECTORY}`.bgWhite);
+});
 
 app.use((req, res) => {
   res.status(404).json({ message: "Not found" });

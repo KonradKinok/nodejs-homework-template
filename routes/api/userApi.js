@@ -13,8 +13,10 @@ import {
 import path from "path";
 import fs from "node:fs/promises";
 dotenv.config();
-const secret = process.env.JWT_SECRET_KEY;
 import jwt from "jsonwebtoken";
+import { nanoid } from "nanoid";
+import { sendVerificationEmail } from "../../config/configEmail.js";
+const secret = process.env.JWT_SECRET_KEY;
 
 const userSchema = Joi.object({
   email: Joi.string().email().required().messages({
@@ -37,6 +39,13 @@ const userSchema = Joi.object({
     }),
 });
 
+const emailSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    "any.required": "missing required email field",
+    "string.empty": "missing required email field",
+    "string.email": "email must be a valid email address",
+  }),
+});
 const router = Router();
 
 router.post("/users/signup", async (req, res, next) => {
@@ -54,12 +63,18 @@ router.post("/users/signup", async (req, res, next) => {
   }
   try {
     const avatarURL = gravatar.url(email, { s: "200", d: "retro" }, true);
-    const user = new UserModel({ email, avatarURL });
+    const verificationToken = nanoid();
+    const user = new UserModel({ email, avatarURL, verificationToken });
     user.setPassword(password);
 
     await user.save();
     console.log(`Added USER: ${user.email} [usersApi.js]`.bgGreen);
     console.log(`Added USER:AVATAR: ${user.avatarURL} [usersApi.js]`.bgGreen);
+    await sendVerificationEmail(email, verificationToken);
+    console.log(
+      `Added USER:verificationToken: ${user.verificationToken} [usersApi.js]`
+        .bgGreen
+    );
     return res.status(201).json({
       email: user.email,
       subscription: user.subscription,
@@ -85,6 +100,12 @@ router.post("/users/login", async (req, res, next) => {
     if (!user || !user.validPassword(password)) {
       return res.status(400).json({
         message: "Email or password is wrong",
+      });
+    }
+    if (!user.verify) {
+      return res.status(403).json({
+        message:
+          "Email not verified. Please check your email for verification link.",
       });
     }
     const payload = {
@@ -189,4 +210,57 @@ router.patch(
     }
   }
 );
+
+router.get("/users/verify/:verificationToken", async (req, res, next) => {
+  try {
+    console.log(`VerificationToken.... [usersApi.js]`.yellow);
+    const { verificationToken } = req.params;
+    const user = await UserModel.findOne({ verificationToken });
+    if (!user || user.verify === true) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    user.verify = true;
+    await user.save();
+    return res.status(200).json({
+      message: "Verification successful",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/users/verify", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const { error } = emailSchema.validate(req.body);
+    if (error) {
+      const message = error.details[0].message;
+      return res.status(400).json({ message });
+    }
+
+    const user = await UserModel.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.verify) {
+      return res
+        .status(400)
+        .json({ message: "Verification has already been passed" });
+    }
+
+    if (!user.verificationToken) {
+      user.verificationToken = nanoid();
+      await user.save();
+    }
+
+    await sendVerificationEmail(email, user.verificationToken);
+    res.status(200).json({ message: "Verification email sent" });
+  } catch (error) {
+    next(error);
+  }
+});
 export const usersRouter = router;
